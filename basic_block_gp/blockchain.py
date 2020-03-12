@@ -5,6 +5,15 @@ from uuid import uuid4
 
 from flask import Flask, jsonify, request
 
+'''
+UUID - unique user id- random # so big that it is extraordinarily improbable that a collision will happen. The probability it will be duplicated is not zero, but it is close enought o be 0 to be negligilbe. It's .00001% but it will happen eventually. Used as a unique address for this node. 
+
+Flask- library for building APIs, app.route(/) is an endpoint
+
+node_identifier not being used YET 
+
+
+'''
 
 class Blockchain(object):
     def __init__(self):
@@ -31,13 +40,21 @@ class Blockchain(object):
         """
 
         block = {
-            # TODO
+            #TO DO
+            'index': len(self.chain) +1,
+            'timestamp': time(),
+            'transactions': self.current_transactions,
+            'proof': proof,
+            'previous_hash': previous_hash or self.hash(self.chain[-1])
         }
 
-        # Reset the current list of transactions
+        # Reset the current list of transactions - list of dicts, hash tables
+        self.current_transactions = []
         # Append the chain to the block
+        self.chain.append(block)
         # Return the new block
-        pass
+        return block 
+        
 
     def hash(self, block):
         """
@@ -48,12 +65,20 @@ class Blockchain(object):
         """
 
         # Use json.dumps to convert json into a string
+        # sort_keys makes sure everything in dict is in order and in the same order every time
+        string_block = json.dumps(block, sort_keys = True)
+
         # Use hashlib.sha256 to create a hash
         # It requires a `bytes-like` object, which is what
         # .encode() does.
+        #returns an object, but we want hexidecimal 
+        raw_hash = hashlib.sha256(string_block.encode())
+
         # It converts the Python string into a byte string.
         # We must make sure that the Dictionary is Ordered,
         # or we'll have inconsistent hashes
+
+        hex_hash = raw_hash.hexdigest()
 
         # TODO: Create the block_string
 
@@ -66,7 +91,13 @@ class Blockchain(object):
         # easier to work with and understand
 
         # TODO: Return the hashed block string in hexadecimal format
-        pass
+        return hex_hash
+
+    #@ is called a decorator function, the property decorator specifically acts like a property, not a method (dont need to use parenthesis when you call this one and it'll give you the last block)
+    #runtime complexity to retrieve last item in array is O(1)
+    # BUT this is in a DB - still O(1) but memory its going to talk a LOT
+    #even O(1) can scale and get problematic bc they interact w one another
+    #if you have O(1) operation but lots of users and machines are hitting the endpoint it can still scale that way
 
     @property
     def last_block(self):
@@ -76,13 +107,22 @@ class Blockchain(object):
         """
         Simple Proof of Work Algorithm
         Stringify the block and look for a proof.
-        Loop through possibilities, checking each one against `valid_proof`
+        Loop through possibilities, checking each one against `valid_proof` O(n)
         in an effort to find a number that is a valid proof
         :return: A valid proof for the provided block
+
+        Brute force solution - no algorithmic solution for this
+
         """
         # TODO
-        pass
+          #get block and turn it into string
+        block_string = json.dumps(block, sort_keys=True)
+        proof = 0 
+
+        while self.valid_proof(block_string, proof) is False:
+            proof +=1
         # return proof
+        return proof
 
     @staticmethod
     def valid_proof(block_string, proof):
@@ -97,8 +137,15 @@ class Blockchain(object):
         :return: True if the resulting hash is a valid proof, False otherwise
         """
         # TODO
-        pass
+
+        guess = f'{block_string}{proof}'.encode()
+        #hexdigest makes it readable
+        guess_hash = hashlib.sha256(guess).hexdigest()
+
         # return True or False
+        # first three, otherwise takes 2-3 min to find a hash
+        return guess_hash[:3] == "000"
+
 
 
 # Instantiate our Node
@@ -114,20 +161,23 @@ blockchain = Blockchain()
 @app.route('/mine', methods=['GET'])
 def mine():
     # Run the proof of work algorithm to get the next proof
-
+    proof = blockchain.proof_of_work(blockchain.last_block)
     # Forge the new Block by adding it to the chain with the proof
-
+    previous_hash = blockchain.hash(blockchain.last_block)
+    block = blockchain.new_block(proof, previous_hash)
     response = {
         # TODO: Send a JSON response with the new block
+        'new_block': block
     }
 
     return jsonify(response), 200
 
-
+#if things are working, will this chain endpoint to anything? itll be empty but itll show up 
 @app.route('/chain', methods=['GET'])
 def full_chain():
     response = {
-        # TODO: Return the chain and its current length
+        "chain": blockchain.chain,
+        "length": len(blockchain.chain)
     }
     return jsonify(response), 200
 
@@ -135,3 +185,4 @@ def full_chain():
 # Run the program on port 5000
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
