@@ -1,8 +1,11 @@
-# Paste your version of blockchain.py from the client_mining_p
-# folder here
-# Paste your version of blockchain.py from the basic_block_gp
-# folder here
+'''
+TO DO
 
+1. Have ability to enter user like olympia -> INPUT 
+2. Create user balance endpoint which sholud take in user and sum up all the transactions
+
+'''
+import requests
 
 import hashlib
 import json
@@ -149,7 +152,7 @@ class Blockchain(object):
 
         # return True or False
         # first three, otherwise takes 2-3 min to find a hash
-        return guess_hash[:4] == "0000"
+        return guess_hash[:5] == "00000"
 
 
 
@@ -162,8 +165,9 @@ node_identifier = str(uuid4()).replace('-', '')
 # Instantiate the Blockchain
 blockchain = Blockchain()
 
+
 """
-Createw a new endpoint transactions/new
+Create a new endpoint transactions/new
 """
 @app.route('/transactions/new', methods=['POST'])
 def receive_transaction():
